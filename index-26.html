@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Tasbih</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#123B34">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- ====== FILL THESE IN ====== -->
+<script>
+  window.SUPABASE_URL = 'https://ndpjttetplhvwocawzpf.supabase.co';
+  window.SUPABASE_ANON_KEY = 'sb_publishable__NQk3EdNbytsNQT5kG_Nhg_hs0g1FP0';
+</script>
+<!-- =========================== -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  :root{
+    --parchment:#F5F0E4;
+    --card:#FCFAF3;
+    --ink:#1E2420;
+    --ink-soft:#5B6058;
+    --green:#123B34;
+    --green-deep:#0C2B26;
+    --gold:#B78A34;
+    --line: rgba(18,59,52,0.14);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--parchment);
+    color:var(--ink);
+    font-family:'Manrope',sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:100px;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+  }
+
+  header{ padding:36px 20px 20px; max-width:520px; margin:0 auto; }
+  .crescent{ width:34px;height:34px; margin-bottom:14px; color:var(--gold); }
+  h1{
+    font-family:'Fraunces',serif; font-weight:500; font-size:2.4rem;
+    letter-spacing:-0.01em; margin:0 0 4px; color:var(--green-deep);
+  }
+  .sub{ color:var(--ink-soft); font-size:0.95rem; margin:0; max-width:34ch; }
+
+  main{ max-width:520px; margin:0 auto; padding:8px 20px 0; display:flex; flex-direction:column; gap:16px; }
+
+  .empty{
+    border:1px dashed var(--line); border-radius:4px; padding:36px 24px;
+    text-align:center; color:var(--ink-soft); font-size:0.95rem; line-height:1.6;
+  }
+
+  .counter-card{
+    position:relative; background:var(--card); border-radius:6px;
+    border-top:3px solid var(--gold); box-shadow:0 1px 2px rgba(18,59,52,0.06);
+    overflow:hidden; transition:box-shadow 0.2s ease;
+  }
+  .counter-card::after{
+    content:""; position:absolute; top:-1px; right:14px; width:10px;height:10px;
+    background:var(--parchment); border:2px solid var(--gold); transform:rotate(45deg);
+  }
+  .counter-card.milestone{ animation:glow 1.1s ease; }
+  @keyframes glow{
+    0%{box-shadow:0 1px 2px rgba(18,59,52,0.06);}
+    35%{box-shadow:0 0 0 4px rgba(183,138,52,0.35);}
+    100%{box-shadow:0 1px 2px rgba(18,59,52,0.06);}
+  }
+
+  .card-top{ display:flex; align-items:center; justify-content:space-between; padding:16px 18px 0; }
+  .name-input{
+    font-family:'Manrope',sans-serif; font-weight:600; font-size:1rem; color:var(--green-deep);
+    border:none; background:transparent; outline:none; width:70%; padding:2px 0;
+    border-bottom:1px solid transparent;
+  }
+  .name-input:focus{ border-bottom:1px solid var(--gold); }
+  .icon-btn{
+    background:none; border:none; cursor:pointer; padding:6px; color:var(--ink-soft);
+    display:flex; align-items:center; justify-content:center; border-radius:4px;
+  }
+  .icon-btn:hover{ color:var(--green); background:rgba(18,59,52,0.06); }
+  .icon-btn:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+
+  .tap-zone{
+    width:100%; background:none; border:none; cursor:pointer; padding:6px 18px 8px;
+    display:flex; flex-direction:column; align-items:center; -webkit-tap-highlight-color:transparent;
+  }
+  .tap-zone:focus-visible{ outline:2px solid var(--gold); outline-offset:-4px; border-radius:4px; }
+  .count{
+    font-family:'Fraunces',serif; font-weight:500; font-size:4.4rem; line-height:1;
+    color:var(--green-deep); transition:transform 0.08s ease;
+  }
+  .count.tapped{ transform:scale(0.94); }
+  .progress{ font-size:0.8rem; color:var(--ink-soft); margin-top:6px; }
+  .complete-msg{
+    display:block; font-size:0.85rem; font-weight:600; color:var(--gold);
+    margin-top:4px;
+  }
+  .counter-card.completed{ border-top-color:var(--green); }
+
+  .card-bottom{ display:flex; justify-content:center; gap:8px; padding:0 18px 14px; }
+  .pill-btn{
+    font-family:'Manrope',sans-serif; font-size:0.82rem; font-weight:500; color:var(--ink-soft);
+    background:none; border:1px solid var(--line); border-radius:20px; padding:6px 14px; cursor:pointer;
+  }
+  .pill-btn:hover{ border-color:var(--gold); color:var(--green-deep); }
+  .pill-btn:focus-visible{ outline:2px solid var(--gold); outline-offset:1px; }
+
+  .add-row{
+    position:fixed; bottom:0; left:0; right:0;
+    background:linear-gradient(to top, var(--parchment) 60%, rgba(245,240,228,0));
+    padding:22px 20px 20px;
+  }
+  .add-form{
+    max-width:480px; margin:0 auto; display:flex; flex-direction:column; gap:8px;
+    background:var(--card); border:1px solid var(--line); border-radius:8px;
+    padding:12px 12px 12px 16px; box-shadow:0 4px 14px rgba(18,59,52,0.10);
+  }
+  .add-form input{
+    border:none; background:transparent; outline:none;
+    font-family:'Manrope',sans-serif; font-size:0.95rem; color:var(--ink);
+  }
+  .add-form input::placeholder{ color:var(--ink-soft); }
+  .add-form-row2{ display:flex; gap:8px; align-items:center; }
+  .add-form-row2 input{
+    width:120px; border:1px solid var(--line); border-radius:6px; padding:8px 10px;
+  }
+  .add-form-row2 input:focus{ border-color:var(--gold); }
+  .add-form button{
+    font-family:'Manrope',sans-serif; font-weight:600; font-size:0.9rem;
+    background:var(--green); color:var(--parchment); border:none; border-radius:6px;
+    padding:10px 18px; cursor:pointer; flex:1;
+  }
+  .add-form button:hover{ background:var(--green-deep); }
+  .add-form button:disabled{ opacity:0.45; cursor:default; }
+
+  .status{ max-width:520px; margin:0 auto; padding:0 20px; font-size:0.82rem; color:var(--ink-soft); min-height:18px; }
+</style>
+</head>
+<body>
+
+<header>
+  <svg class="crescent" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M15.5 3.5C11.5 4.6 8.7 8.3 8.7 12.5c0 4.2 2.8 7.9 6.8 9-1.2.4-2.5.6-3.8.6-6.1 0-11-4.9-11-11s4.9-11 11-11c1.3 0 2.6.2 3.8.6z" fill="currentColor"/>
+  </svg>
+  <h1>Tasbih</h1>
+  <p class="sub">Add a phrase, tap to count. Synced to this device.</p>
+</header>
+
+<p class="status" id="status" aria-live="polite">Connecting…</p>
+
+<main id="list"></main>
+
+<div class="add-row">
+  <div class="add-form" id="addForm">
+    <input id="newName" type="text" placeholder="Name a new counter, e.g. SubhanAllah" maxlength="40" autocomplete="off">
+    <div class="add-form-row2">
+      <input id="newTarget" type="number" min="1" step="1" placeholder="Target (optional)">
+      <button type="button" id="addBtn" disabled>Add</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const supabaseClient = (window.SUPABASE_URL && window.SUPABASE_URL.startsWith('http'))
+  ? window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY)
+  : null;
+
+let counters = [];
+let userId = null;
+
+function setStatus(msg){
+  document.getElementById('status').textContent = msg;
+}
+
+function getProgress(c){
+  if(c.target){
+    return {
+      progressText: `${c.count} of ${c.target}`,
+      isComplete: c.count >= c.target
+    };
+  }
+  const remInCycle = c.count % 33;
+  return {
+    progressText: c.count === 0
+      ? 'Tap to begin'
+      : (remInCycle === 0 ? `Cycle of 33 complete \u00d7 ${Math.floor(c.count/33)}` : `${remInCycle} of 33`),
+    isComplete: false
+  };
+}
+
+function escapeHtml(s){
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+async function initAuth(){
+  if(!supabaseClient){
+    setStatus('Add your Supabase URL and anon key at the top of index.html to connect.');
+    return false;
+  }
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if(session){
+    userId = session.user.id;
+    return true;
+  }
+  const { data, error } = await supabaseClient.auth.signInAnonymously();
+  if(error){
+    setStatus('Could not connect to Supabase. Check your URL/key and that anonymous sign-ins are enabled.');
+    return false;
+  }
+  userId = data.user.id;
+  return true;
+}
+
+async function loadCounters(){
+  const ok = await initAuth();
+  if(!ok) return;
+  const { data, error } = await supabaseClient
+    .from('counters')
+    .select('*')
+    .order('created_at', { ascending: true });
+  if(error){
+    setStatus('Could not load your counters. ' + error.message);
+    return;
+  }
+  counters = data;
+  setStatus('');
+  document.getElementById('addBtn').disabled = false;
+  render();
+}
+
+function render(){
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+
+  if(counters.length === 0){
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = 'No counters yet. Add one below to begin.';
+    list.appendChild(empty);
+    return;
+  }
+
+  counters.forEach(c => {
+    const card = document.createElement('section');
+    card.className = 'counter-card';
+    card.dataset.id = c.id;
+
+    const { progressText, isComplete } = getProgress(c);
+    if(isComplete) card.classList.add('completed');
+
+    card.innerHTML = `
+      <div class="card-top">
+        <input class="name-input" value="${escapeHtml(c.name)}" maxlength="40" aria-label="Counter name">
+        <button class="icon-btn" data-action="delete" aria-label="Delete counter">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m2 0v13a2 2 0 01-2 2H9a2 2 0 01-2-2V7h10z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+      <button class="tap-zone" data-action="increment" aria-label="Tap to increase count">
+        <span class="count">${c.count}</span>
+        <span class="progress">${progressText}</span>
+        ${isComplete ? `<span class="complete-msg">Target of ${c.target} reached</span>` : ''}
+      </button>
+      <div class="card-bottom">
+        <button class="pill-btn" data-action="reset">Reset</button>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+document.getElementById('list').addEventListener('click', async (e) => {
+  const card = e.target.closest('.counter-card');
+  if(!card) return;
+  const id = card.dataset.id;
+  const counter = counters.find(c => c.id === id);
+  if(!counter) return;
+
+  const action = e.target.closest('[data-action]')?.dataset.action;
+
+  if(action === 'increment'){
+    counter.count += 1;
+    const countEl = card.querySelector('.count');
+    countEl.textContent = counter.count;
+    countEl.classList.add('tapped');
+    setTimeout(() => countEl.classList.remove('tapped'), 90);
+
+    const { progressText, isComplete } = getProgress(counter);
+    card.querySelector('.progress').textContent = progressText;
+
+    let msgEl = card.querySelector('.complete-msg');
+    if(isComplete){
+      card.classList.add('completed');
+      if(!msgEl){
+        msgEl = document.createElement('span');
+        msgEl.className = 'complete-msg';
+        card.querySelector('.progress').insertAdjacentElement('afterend', msgEl);
+      }
+      msgEl.textContent = `Target of ${counter.target} reached`;
+    } else if(msgEl){
+      msgEl.remove();
+    }
+
+    const justHitMilestone = counter.target
+      ? counter.count === counter.target
+      : (counter.count > 0 && counter.count % 33 === 0);
+    if(justHitMilestone){
+      card.classList.remove('milestone');
+      void card.offsetWidth;
+      card.classList.add('milestone');
+    }
+
+    const { error } = await supabaseClient
+      .from('counters')
+      .update({ count: counter.count, updated_at: new Date().toISOString() })
+      .eq('id', id);
+    if(error) setStatus('Tap not saved — check your connection.');
+
+  } else if(action === 'reset'){
+    counter.count = 0;
+    render();
+    const { error } = await supabaseClient
+      .from('counters')
+      .update({ count: 0, updated_at: new Date().toISOString() })
+      .eq('id', id);
+    if(error) setStatus('Reset not saved — check your connection.');
+
+  } else if(action === 'delete'){
+    counters = counters.filter(c => c.id !== id);
+    render();
+    const { error } = await supabaseClient.from('counters').delete().eq('id', id);
+    if(error) setStatus('Delete not saved — check your connection.');
+  }
+});
+
+document.getElementById('list').addEventListener('change', async (e) => {
+  if(!e.target.classList.contains('name-input')) return;
+  const card = e.target.closest('.counter-card');
+  const id = card.dataset.id;
+  const counter = counters.find(c => c.id === id);
+  if(!counter) return;
+  const val = e.target.value.trim();
+  counter.name = val || 'Untitled';
+  e.target.value = counter.name;
+
+  const { error } = await supabaseClient
+    .from('counters')
+    .update({ name: counter.name, updated_at: new Date().toISOString() })
+    .eq('id', id);
+  if(error) setStatus('Rename not saved — check your connection.');
+});
+
+async function addCounter(){
+  const nameInput = document.getElementById('newName');
+  const targetInput = document.getElementById('newTarget');
+  const name = nameInput.value.trim();
+  if(!name || !supabaseClient) return;
+
+  const targetRaw = targetInput.value.trim();
+  const target = targetRaw && Number(targetRaw) > 0 ? Math.floor(Number(targetRaw)) : null;
+
+  nameInput.value = '';
+  targetInput.value = '';
+
+  const { data, error } = await supabaseClient
+    .from('counters')
+    .insert({ name, count: 0, target })
+    .select()
+    .single();
+
+  if(error){
+    setStatus('Could not add counter. ' + error.message);
+    return;
+  }
+  counters.push(data);
+  render();
+}
+
+document.getElementById('addBtn').addEventListener('click', addCounter);
+['newName', 'newTarget'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', (e) => {
+    if(e.key === 'Enter'){
+      e.preventDefault();
+      addCounter();
+    }
+  });
+});
+
+loadCounters();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
